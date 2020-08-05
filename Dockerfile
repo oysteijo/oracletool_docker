@@ -1,6 +1,6 @@
 FROM ubuntu:latest
 
-MAINTAINER oysteijo@gmail.com
+LABEL maintainer="oysteijo@gmail.com"
 
 ARG ORACLE_INSTALL_DIR=/opt/oracle
 ARG TNS_ADMIN=${ORACLE_INSTALL_DIR}/tns
