@@ -1,0 +1,8 @@
+# Ignore zip files
+*.zip
+
+# Ignore typical TNS configuration files (.ora)
+*.ora
+
+# Ignore temporary files
+*~
