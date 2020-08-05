@@ -26,7 +26,7 @@ When this is done, you can build your image with:
 
 Or if you have a proxy you need to pass in the `build_arg`:
 
-    docker build -t oracletool .
+    docker build --build-arg http_proxy=http://proxy.inmydomain.com:80 -t oracletool .
 
 If then everything builds successfully, you should be able to run the container:
 
