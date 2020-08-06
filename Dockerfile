@@ -5,9 +5,11 @@ LABEL maintainer="oysteijo@gmail.com"
 ARG ORACLE_INSTALL_DIR=/opt/oracle
 ARG TNS_ADMIN=${ORACLE_INSTALL_DIR}/tns
 
-ARG ORACLE_HOME=${ORACLE_INSTALL_DIR}/instantclient_12_2
-ARG INSTANTCLIENT_ZIP=instantclient-basiclite-linux.x64-12.2.0.1.0.zip
-ARG INSTANTCLIENT_SDK_ZIP=instantclient-sdk-linux.x64-12.2.0.1.0.zip
+# Oracle claims that these should be permanent links to the latest packages.
+ARG ORACLE_HOME=${ORACLE_INSTALL_DIR}/instantclient
+ARG INSTANCLIENT_URL=https://download.oracle.com/otn_software/linux/instantclient
+ARG INSTANTCLIENT_ZIP=instantclient-basiclite-linuxx64.zip
+ARG INSTANTCLIENT_SDK_ZIP=instantclient-sdk-linuxx64.zip
 
 # Install Base Packages
 RUN apt-get update
@@ -19,22 +21,27 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install apache2 libapache2-mod-per
 RUN a2enmod perl
 RUN a2enmod rewrite
 
-# install Oracle instantclient and SDK (SDK is needed to build perl connector DBD:Oracle)
-#
-# Note that the name of the directory contains the instantclient version (ie. 12_2), so you
-# might have to change line 8 to reflect this if you are not using version 12.2
+###########################################################################################
+# Install Oracle instantclient and SDK (SDK is needed to build perl connector DBD:Oracle) #
+###########################################################################################
 USER root
 RUN mkdir -p ${ORACLE_INSTALL_DIR}
-COPY ${INSTANTCLIENT_ZIP} /tmp/
-COPY ${INSTANTCLIENT_SDK_ZIP} /tmp/
+RUN wget -O /tmp/${INSTANTCLIENT_ZIP} ${INSTANCLIENT_URL}/${INSTANTCLIENT_ZIP}
+RUN wget -O /tmp/${INSTANTCLIENT_SDK_ZIP} ${INSTANCLIENT_URL}/${INSTANTCLIENT_SDK_ZIP}
 RUN unzip /tmp/${INSTANTCLIENT_ZIP} -d ${ORACLE_INSTALL_DIR}
 RUN unzip /tmp/${INSTANTCLIENT_SDK_ZIP} -d ${ORACLE_INSTALL_DIR}
+# This strips away the version of instantclient directory
+RUN mv ${ORACLE_INSTALL_DIR}/instantclient* ${ORACLE_HOME}
+# Clean up
+RUN rm /tmp/${INSTANTCLIENT_ZIP} /tmp/${INSTANTCLIENT_SDK_ZIP}
 
 # Update the ld.so such that you won't need an LD_LIBRARY_PATH
 RUN echo ${ORACLE_HOME} > /etc/ld.so.conf.d/oracle-instantclient.conf
 RUN ldconfig
 
-# Install oracletool
+###########################################################################################
+# Install oracletool                                                                      #
+###########################################################################################
 ARG DOCUMENT_ROOT=/var/www/html
 ARG ORACLETOOL_VERSION=3.0.2
 ARG ORACLETOOL_DIR=${DOCUMENT_ROOT}/oracletool
@@ -60,15 +67,21 @@ RUN sed -i -E 's|(^#!).*|\1/usr/bin/perl|g' ${ORACLETOOL_DIR}/oracletool.pl
 RUN mv ${ORACLETOOL_DIR}/oracletool.sam ${ORACLETOOL_INI} && chmod 644 ${ORACLETOOL_INI}
 RUN sed -i -r "s|(ORACLE_HOME =).*|\1 ${ORACLE_HOME}|g ; s|(TNS_ADMIN =).*|\1 ${TNS_ADMIN}|g ; s|(\s*fontsize\s*=\s*)[0-9]*|\1 13|g" ${ORACLETOOL_INI}
 
-# Install DBD::Oracle
+###########################################################################################
+# Install DBD::Oracle                                                                     #
+###########################################################################################
 ENV ORACLE_HOME ${ORACLE_HOME}
 RUN cpanm DBD::Oracle
 
-# Copy the TNS_ADMIN files from local.
+###########################################################################################
+# Generate the TNS_ADMIN directory and copy files from local.                             #
+###########################################################################################
 RUN mkdir -p ${TNS_ADMIN}
 COPY *.ora ${TNS_ADMIN}/
 
+###########################################################################################
 # And then we set up the httpd config.
+###########################################################################################
 COPY apache2_conf.template /etc/apache2/apache2.conf
 RUN sed -i -e "s|XXX_ORACLETOOL_DIR_XXX|${ORACLETOOL_DIR}|g" /etc/apache2/apache2.conf
 
@@ -81,3 +94,4 @@ RUN ln -s /etc/apache2/mods-available/cgi.load /etc/apache2/mods-enabled/
 
 # And then we kick off the apache server process....
 CMD apachectl -D FOREGROUND
+
