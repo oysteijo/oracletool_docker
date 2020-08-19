@@ -20,6 +20,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install apache2 libapache2-mod-per
 # Enable apache mods.
 RUN a2enmod perl
 RUN a2enmod rewrite
+RUN a2enmod ssl
 
 ###########################################################################################
 # Install Oracle instantclient and SDK (SDK is needed to build perl connector DBD:Oracle) #
@@ -80,7 +81,7 @@ RUN mkdir -p ${TNS_ADMIN}
 COPY *.ora ${TNS_ADMIN}/
 
 ###########################################################################################
-# And then we set up the httpd config.
+# And then we set up the httpd config.                                                    #
 ###########################################################################################
 COPY apache2_conf.template /etc/apache2/apache2.conf
 RUN sed -i -e "s|XXX_ORACLETOOL_DIR_XXX|${ORACLETOOL_DIR}|g" /etc/apache2/apache2.conf
@@ -89,8 +90,12 @@ RUN sed -i -e "s|XXX_ORACLETOOL_DIR_XXX|${ORACLETOOL_DIR}|g" /etc/apache2/apache
 COPY index.html ${DOCUMENT_ROOT}/
 RUN sed -i -r "s/Oracletool/Oracletool v${ORACLETOOL_VERSION}/g" ${DOCUMENT_ROOT}/index.html
 
+RUN openssl req -x509 -nodes -days 365 -subj "/C=CA/ST=QC/O=Equinor/CN=equinor.com" -addext "subjectAltName=DNS:equinor.com" -newkey rsa:2048 -keyout /etc/ssl/private/selfsigned.key -out /etc/ssl/certs/selfsigned.pem;
+
 # Enable CGI sripting
 RUN ln -s /etc/apache2/mods-available/cgi.load /etc/apache2/mods-enabled/
+
+#COPY 000-default.conf /etc/apache2/sites-enabled/000-default.conf
 
 # And then we kick off the apache server process....
 CMD apachectl -D FOREGROUND

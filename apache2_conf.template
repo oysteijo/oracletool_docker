@@ -42,6 +42,23 @@ LogFormat "%h %l %u %t \"%r\" %>s %O" common
 LogFormat "%{Referer}i -> %U" referer
 LogFormat "%{User-agent}i" agent
 IncludeOptional conf-enabled/*.conf
-IncludeOptional sites-enabled/*.conf
+
+<VirtualHost *:80>
+	Redirect / https://
+</VirtualHost>
+
+<VirtualHost *:443>
+	ServerAdmin webmaster@localhost
+	DocumentRoot /var/www/html
+	ErrorLog ${APACHE_LOG_DIR}/error.log
+	CustomLog ${APACHE_LOG_DIR}/access.log combined
+	SSLEngine on
+	SSLCertificateFile /etc/ssl/certs/selfsigned.pem
+	SSLCertificateKeyFile /etc/ssl/private/selfsigned.key
+</VirtualHost>
+
 Servername localhost
 AcceptFilter http none
+
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
+

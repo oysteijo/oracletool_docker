@@ -28,11 +28,17 @@ Or if you have a proxy you need to pass in the `build_arg`:
 
 If then everything builds successfully, you should be able to run the container:
 
-    docker run -d -p 8000:80 oracletool
+    docker run -d -p 8000:443 oracletool
 
 You can then visit the URL:
 
-    http://localhost:8000
+    https://localhost:8000
 
-That should take you to the oracletool application. Good luck!
+That should take you to the oracletool application.
+
+#### News 19th August 2020
+I've added SSL support, but only using self signed certificate/key. This will make you browser warn you
+and you need some extra clicks to proceed.
+
+Good luck!
 
